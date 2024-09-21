@@ -1,0 +1,13 @@
+streamlit
+sqlite3
+spacy
+joblib
+pandas
+flair
+transformers
+scikit-learn
+pyspark
+sparknlp
+dateparser
+requests
+python-dotenv
