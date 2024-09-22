@@ -698,14 +698,29 @@ def get_iata_code(city_name):
 
 
 
+
+# Function to map city names to IATA codes
+def get_iata_code(city_name):
+    iata_lookup = {
+        'Delhi': 'DEL',
+        'Mumbai': 'BOM',
+        'Bangalore': 'BLR',
+        'Jaipur': 'JAI',
+        # Add more cities as needed
+    }
+    
+    return iata_lookup.get(city_name, None)
+
 # Fetch recommendations from Amadeus API
 def fetch_amadeus_recommendations(city_code, traveler_country_code, destination_country_code=None):
     token = get_amadeus_token()
     if not token:
+        st.error("Failed to fetch Amadeus token")
         return None
     
     headers = {
-        "Authorization": f"Bearer {token}"
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
     }
     
     # Construct the URL for the API request
@@ -715,16 +730,16 @@ def fetch_amadeus_recommendations(city_code, traveler_country_code, destination_
     if destination_country_code:
         url += f"&destinationCountryCodes={destination_country_code}"
     
-    print(f"Requesting URL: {url}")  # Debugging: print the full request URL
+    # Logging for debugging
+    st.write(f"Requesting URL: {url}")
     
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         return response.json().get('data', [])
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching Amadeus recommendations: {e}")
+        st.error(f"Error fetching Amadeus recommendations: {e}")
         return None
-    
 
 
 import requests
