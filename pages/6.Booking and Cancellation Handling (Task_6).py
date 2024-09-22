@@ -94,8 +94,12 @@ def store_booking(service_type, details):
 
 # Fetch booking history for the logged-in user
 def fetch_booking_history(user_email, canceled=0):
-    c.execute("SELECT booking_id, service_type, details, booking_date FROM bookings WHERE user_email=? AND canceled=?", (user_email, canceled))
-    return c.fetchall()
+    try:
+        c.execute("SELECT booking_id, service_type, details, booking_date FROM bookings WHERE user_email=? AND canceled=?", (user_email, canceled))
+        return c.fetchall()
+    except sqlite3.OperationalError as e:
+        st.error(f"An error occurred with the database: {e}")
+        return []
 
 # Delete booking (Cancel)
 def cancel_booking(booking_id, user_email):
@@ -253,6 +257,7 @@ def hotel_booking():
                 booking_id = store_booking('hotel', booking_details)
                 st.success(f"Hotel booked successfully! Booking ID: {booking_id}")
 
+# Car Booking Function
 def car_booking():
     st.header("Car Rental Booking")
     
