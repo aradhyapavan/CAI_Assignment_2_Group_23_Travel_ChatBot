@@ -12,5 +12,4 @@ requests==2.32.3
 numpy
 thinc==8.2.5
 spacy==3.7.6
-spacy
-https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.7.1/en_core_web_md-3.7.1-py3-none-any.whl
+
