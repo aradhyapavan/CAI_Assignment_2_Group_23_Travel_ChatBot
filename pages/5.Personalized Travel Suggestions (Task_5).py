@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from utils import create_connection, fetch_amadeus_recommendations
+from utils import create_connection, fetch_amadeus_recommendations,get_flight_offers
 import login_signup
 import random
 
