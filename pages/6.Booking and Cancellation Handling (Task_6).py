@@ -3,9 +3,7 @@ import sqlite3
 import pandas as pd
 from datetime import datetime, timedelta
 import login_signup
-from utils import get_flight_offers, get_hotel_list_by_city, get_car_rentals,get_vehicle_details_by_car_id
-
-
+from utils import get_flight_offers, get_hotel_list_by_city, get_car_rentals, get_vehicle_details_by_car_id
 
 # Check if user is logged in and redirect to login if not
 def check_login():
@@ -19,6 +17,7 @@ def check_login():
         st.stop()
 
 check_login()
+
 # Connect to SQLite database
 conn = sqlite3.connect('travel_booking.db', check_same_thread=False)
 c = conn.cursor()
@@ -34,6 +33,7 @@ def setup_db():
     c.execute('''
         CREATE TABLE IF NOT EXISTS bookings (
             booking_id TEXT,
+            user_email TEXT,  -- Add user_email to track bookings by user
             service_type TEXT,
             details TEXT,
             booking_date TEXT,
@@ -42,50 +42,27 @@ def setup_db():
     ''')
     conn.commit()
 
-# Call setup_db to ensure database structure is correct
 setup_db()
-
-
 
 # Greeting and Overview of Booking System
 st.title("🤖 Welcome to Travel Services!")
-if 'user_name' in st.session_state:
-    st.markdown(f"Hello, {st.session_state['user_name']}! I'm here to assist you with your travel needs.")
+if 'name' in st.session_state:  # Using 'name', not 'user_name'
+    st.markdown(f"Hello, {st.session_state['name']}! I'm here to assist you with your travel needs.")
 else:
     st.markdown("Hello! I'm here to assist you with your travel needs.")
 
 st.markdown("""
 ### 🛠️ How It Works:
-1. **Flight Booking**: 
-   - Select your source and destination cities, choose departure and return dates, and pick your travel class.
-   - Click **Search Flights** to fetch available options. Once you select a flight, confirm your booking and pay using your preferred method.
-
-2. **Hotel Booking**: 
-   - Choose a city, search for available hotels, and select your preferred hotel and room type.
-   - Specify your check-in and check-out dates, and confirm your booking with the total price.
-
-3. **Car Rental**:
-   - Select a city and search for available rental cars.
-   - Choose a car, specify pick-up and drop-off dates, and confirm your booking.
-
-4. **Cancellation Policy**: 
-   - You can cancel bookings within **24 hours** of the booking date, provided the booking is eligible for cancellation. 
-   - If you wish to cancel, simply select the booking from your travel history and confirm the cancellation.
-
-### 🌐 APIs Used:
-- **Flight Offers API**: Fetches the latest flight offers.
-- **Hotel List API**: Retrieves a list of hotels in your chosen city.
-- **Car Rentals API**: Provides rental options in your selected city.
-
-Let’s get started! Please select a service from the dropdown below.
+1. **Flight Booking**: Select your source and destination cities, choose departure and return dates, and pick your travel class. Confirm your booking.
+2. **Hotel Booking**: Choose a city, search for available hotels, select your preferred hotel and room type. Confirm your booking.
+3. **Car Rental**: Select a city and search for available rental cars, choose pick-up and drop-off dates, confirm your booking.
+4. **Cancellation Policy**: Cancel bookings within **24 hours** of booking date if eligible.
 """)
-
-
 
 # Function to generate unique booking ID
 def generate_booking_id(service_type):
     prefix = {'flight': 'FL', 'hotel': 'HL', 'car': 'CR'}
-    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')  # e.g., 20240921121530
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
     return f"{prefix.get(service_type, 'XX')}{timestamp}"
 
 # Cache API data
@@ -102,22 +79,27 @@ def fetch_cached_api_data(service_type):
         return eval(row[0])  # Convert string back to dict
     return None
 
-# Store booking details in DB with a unique booking ID
+# Store booking details in DB with a unique booking ID and user email
 def store_booking(service_type, details):
+    if 'email' not in st.session_state:  # Using 'email', not 'user_email'
+        st.error("User email is not available. Please log in.")
+        return None
+
     booking_id = generate_booking_id(service_type)
-    c.execute("INSERT INTO bookings (booking_id, service_type, details, booking_date, canceled) VALUES (?, ?, ?, ?, ?)",
-              (booking_id, service_type, str(details), datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 0))
+    user_email = st.session_state['email']  # Fetch user email from session state
+    c.execute("INSERT INTO bookings (booking_id, user_email, service_type, details, booking_date, canceled) VALUES (?, ?, ?, ?, ?, ?)",
+              (booking_id, user_email, service_type, str(details), datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 0))
     conn.commit()
     return booking_id
 
-# Fetch booking history
-def fetch_booking_history(canceled=0):
-    c.execute("SELECT booking_id, service_type, details, booking_date FROM bookings WHERE canceled=?", (canceled,))
+# Fetch booking history for the logged-in user
+def fetch_booking_history(user_email, canceled=0):
+    c.execute("SELECT booking_id, service_type, details, booking_date FROM bookings WHERE user_email=? AND canceled=?", (user_email, canceled))
     return c.fetchall()
 
 # Delete booking (Cancel)
-def cancel_booking(booking_id):
-    c.execute("UPDATE bookings SET canceled=1 WHERE booking_id=?", (booking_id,))
+def cancel_booking(booking_id, user_email):
+    c.execute("UPDATE bookings SET canceled=1 WHERE booking_id=? AND user_email=?", (booking_id, user_email))
     conn.commit()
 
 # Helper functions for handling API responses and pricing
@@ -252,7 +234,8 @@ def hotel_booking():
             st.error("Check-out date must be after check-in date and at least a one-night stay.")
         else:
             total_price = calculate_hotel_price(room_type, num_days)
-            st.write(f"Total Price for {num_days} day(s) in a {room_type}: {convert_to_inr(total_price):.2f} INR")
+            st.write(f"Total Price for {num_days} day(s) in a {room_type}: {total_price:.2f} INR")
+
 
             payment_method = st.radio("Select Payment Method", ["Credit Card", "Debit Card", "UPI"], key="hotel_payment")
 
@@ -355,15 +338,18 @@ def car_booking():
             store_booking('car', booking_details)
             st.success(f"Car rental booked successfully! Booking ID: {booking_id}")
 
-
-
 # Travel History and Cancellation Function
 def travel_history():
     st.header("Travel History")
     
+    if 'email' not in st.session_state:
+        st.error("User email is not available. Please log in.")
+        return
+
     # Active bookings table
     st.subheader("Active Bookings")
-    history = fetch_booking_history(canceled=0)
+    user_email = st.session_state['email']  # Use logged-in user's email
+    history = fetch_booking_history(user_email, canceled=0)
     if history:
         active_data = []
         cancelable_bookings = []
@@ -428,7 +414,7 @@ def travel_history():
             
             # Button to confirm cancellation
             if st.button("Confirm Cancellation"):
-                cancel_booking(cancelable_bookings[cancel_index][1])
+                cancel_booking(cancelable_bookings[cancel_index][1], user_email)  # Pass the user_email to cancel_booking
                 st.success(f"Booking ID: {cancelable_bookings[cancel_index][1]} canceled.")
                 st.stop()  # Stop script execution, re-render on next user interaction
         else:
@@ -439,7 +425,7 @@ def travel_history():
 
     # Canceled bookings table
     st.subheader("Canceled Bookings")
-    canceled_history = fetch_booking_history(canceled=1)
+    canceled_history = fetch_booking_history(user_email, canceled=1)
     if canceled_history:
         canceled_data = []
         for record in canceled_history:
