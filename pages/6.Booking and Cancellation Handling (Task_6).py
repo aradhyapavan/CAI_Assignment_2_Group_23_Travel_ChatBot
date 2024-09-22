@@ -4,6 +4,16 @@ import pandas as pd
 from datetime import datetime, timedelta
 import login_signup
 from utils import get_flight_offers, get_hotel_list_by_city, get_car_rentals, get_vehicle_details_by_car_id
+# Connect to SQLite database
+conn = sqlite3.connect('travel_booking.db', check_same_thread=False)
+c = conn.cursor()
+
+# Function to reset and recreate the database if needed (only call this manually if resetting is required)
+def reset_database():
+    c.execute("DROP TABLE IF EXISTS api_data")
+    c.execute("DROP TABLE IF EXISTS bookings")
+    conn.commit()
+    setup_db()
 
 # Function to setup database schema
 def setup_db():
@@ -25,15 +35,8 @@ def setup_db():
     ''')
     conn.commit()
 
-# Connect to SQLite database
-conn = sqlite3.connect('travel_booking.db', check_same_thread=False)
-c = conn.cursor()
-
-# Call setup_db to ensure database structure is correct
-setup_db()  # This will create the tables if they don't exist but will not drop any data
-
-
-
+# Ensure tables exist without resetting any data
+setup_db()
 
 # Check if user is logged in and redirect to login if not
 def check_login():
@@ -47,10 +50,6 @@ def check_login():
         st.stop()
 
 check_login()
-
-# Connect to SQLite database
-conn = sqlite3.connect('travel_booking.db', check_same_thread=False)
-c = conn.cursor()
 
 
 # Greeting and Overview of Booking System
