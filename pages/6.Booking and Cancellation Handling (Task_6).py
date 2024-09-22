@@ -33,55 +33,36 @@ def setup_db():
     c.execute('''
         CREATE TABLE IF NOT EXISTS bookings (
             booking_id TEXT,
+            user_email TEXT,  -- Add user_email to track bookings by user
             service_type TEXT,
             details TEXT,
             booking_date TEXT,
-            user_email TEXT,
             canceled INTEGER DEFAULT 0
         )
     ''')
     conn.commit()
 
-# Call setup_db to ensure database structure is correct
 setup_db()
 
 # Greeting and Overview of Booking System
 st.title("🤖 Welcome to Travel Services!")
-if 'name' in st.session_state:
+if 'name' in st.session_state:  # Using 'name', not 'user_name'
     st.markdown(f"Hello, {st.session_state['name']}! I'm here to assist you with your travel needs.")
 else:
     st.markdown("Hello! I'm here to assist you with your travel needs.")
 
 st.markdown("""
 ### 🛠️ How It Works:
-1. **Flight Booking**: 
-   - Select your source and destination cities, choose departure and return dates, and pick your travel class.
-   - Click **Search Flights** to fetch available options. Once you select a flight, confirm your booking and pay using your preferred method.
-
-2. **Hotel Booking**: 
-   - Choose a city, search for available hotels, and select your preferred hotel and room type.
-   - Specify your check-in and check-out dates, and confirm your booking with the total price.
-
-3. **Car Rental**:
-   - Select a city and search for available rental cars.
-   - Choose a car, specify pick-up and drop-off dates, and confirm your booking.
-
-4. **Cancellation Policy**: 
-   - You can cancel bookings within **24 hours** of the booking date, provided the booking is eligible for cancellation. 
-   - If you wish to cancel, simply select the booking from your travel history and confirm the cancellation.
-
-### 🌐 APIs Used:
-- **Flight Offers API**: Fetches the latest flight offers.
-- **Hotel List API**: Retrieves a list of hotels in your chosen city.
-- **Car Rentals API**: Provides rental options in your selected city.
-
-Let’s get started! Please select a service from the dropdown below.
+1. **Flight Booking**: Select your source and destination cities, choose departure and return dates, and pick your travel class. Confirm your booking.
+2. **Hotel Booking**: Choose a city, search for available hotels, select your preferred hotel and room type. Confirm your booking.
+3. **Car Rental**: Select a city and search for available rental cars, choose pick-up and drop-off dates, confirm your booking.
+4. **Cancellation Policy**: Cancel bookings within **24 hours** of booking date if eligible.
 """)
 
 # Function to generate unique booking ID
 def generate_booking_id(service_type):
     prefix = {'flight': 'FL', 'hotel': 'HL', 'car': 'CR'}
-    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')  # e.g., 20240921121530
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
     return f"{prefix.get(service_type, 'XX')}{timestamp}"
 
 # Cache API data
@@ -100,19 +81,23 @@ def fetch_cached_api_data(service_type):
 
 # Store booking details in DB with a unique booking ID and user email
 def store_booking(service_type, details):
+    if 'email' not in st.session_state:  # Using 'email', not 'user_email'
+        st.error("User email is not available. Please log in.")
+        return None
+
     booking_id = generate_booking_id(service_type)
-    user_email = st.session_state['email']  # Get the logged-in user's email
-    c.execute("INSERT INTO bookings (booking_id, service_type, details, booking_date, user_email, canceled) VALUES (?, ?, ?, ?, ?, ?)",
-              (booking_id, service_type, str(details), datetime.now().strftime('%Y-%m-%d %H:%M:%S'), user_email, 0))
+    user_email = st.session_state['email']  # Fetch user email from session state
+    c.execute("INSERT INTO bookings (booking_id, user_email, service_type, details, booking_date, canceled) VALUES (?, ?, ?, ?, ?, ?)",
+              (booking_id, user_email, service_type, str(details), datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 0))
     conn.commit()
     return booking_id
 
-# Fetch booking history for a specific user
+# Fetch booking history for the logged-in user
 def fetch_booking_history(user_email, canceled=0):
     c.execute("SELECT booking_id, service_type, details, booking_date FROM bookings WHERE user_email=? AND canceled=?", (user_email, canceled))
     return c.fetchall()
 
-# Delete booking (Cancel) for a specific user
+# Delete booking (Cancel)
 def cancel_booking(booking_id, user_email):
     c.execute("UPDATE bookings SET canceled=1 WHERE booking_id=? AND user_email=?", (booking_id, user_email))
     conn.commit()
@@ -122,6 +107,7 @@ def convert_to_inr(eur_price):
     conversion_rate = 110
     return float(eur_price) * conversion_rate
 
+# Function to check if a booking is within 24 hours
 def is_within_24_hours(booking_date_str):
     booking_date = datetime.strptime(booking_date_str, '%Y-%m-%d %H:%M:%S')
     return (datetime.now() - booking_date).total_seconds() <= 24 * 3600
@@ -148,6 +134,7 @@ def flight_booking():
     else:
         departure_date = st.date_input("Departure Date", min_value=datetime.now().date(), key="flight_departure")
 
+        # Automatically adjust the return date if it's earlier than the departure date
         if "flight_return" not in st.session_state:
             st.session_state.flight_return = departure_date
         elif st.session_state.flight_return < departure_date:
@@ -160,6 +147,7 @@ def flight_booking():
 
         travel_class = st.selectbox("Select Class", ["Business", "First"], key="flight_class")
 
+        # Fetch flight data on search
         if st.button("Search Flights"):
             with st.spinner("Fetching flight data..."):
                 flight_data = get_flight_offers(
@@ -169,9 +157,11 @@ def flight_booking():
                     return_date.strftime('%Y-%m-%d') if return_date else None
                 )
                 
+                # Cache the flight data if available
                 if flight_data:
                     cache_api_data('flight', flight_data)
 
+        # After search or if cached data exists, show flight options
         flight_data = fetch_cached_api_data('flight')
         if flight_data:
             offers = flight_data.get("data", [])[:5]
@@ -202,6 +192,7 @@ def flight_booking():
 def hotel_booking():
     st.header("Hotel Booking")
     
+    # Maintain selected city in session state to avoid resetting
     if 'selected_city' not in st.session_state:
         st.session_state.selected_city = None
     city = st.selectbox("Select City", ["Mumbai", "Delhi", "Bangalore", "Hyderabad", "Chennai"], 
@@ -209,7 +200,10 @@ def hotel_booking():
                         key="hotel_city")
     
     if st.button("Search Hotels"):
+        # Update session state with the selected city
         st.session_state.selected_city = city
+
+        # Ensure hotel data persists in session state
         if 'hotel_data' not in st.session_state:
             with st.spinner("Fetching hotel data..."):
                 st.session_state.hotel_data = get_hotel_list_by_city(city)
@@ -218,26 +212,30 @@ def hotel_booking():
         hotel_options = [f"{hotel['name']} - ID: {hotel['hotelId']}" for hotel in st.session_state.hotel_data["data"][:5]]
         selected_hotel = st.selectbox("Select a Hotel", hotel_options, key="hotel_selection")
 
+        # Use session state to remember check-in and check-out dates
         if 'checkin_date' not in st.session_state:
             st.session_state.checkin_date = datetime.now().date()
 
         checkin_date = st.date_input("Check-in Date", min_value=datetime.now().date(), value=st.session_state.checkin_date, key="hotel_checkin")
         st.session_state.checkin_date = checkin_date
 
+        # Automatically set check-out date to the check-in date if it's before
         if 'checkout_date' not in st.session_state or st.session_state.checkout_date < st.session_state.checkin_date:
-            st.session_state.checkout_date = checkin_date + timedelta(days=1)
+            st.session_state.checkout_date = checkin_date + timedelta(days=1)  # Default to one day after check-in
 
         checkout_date = st.date_input("Check-out Date", min_value=checkin_date, value=st.session_state.checkout_date, key="hotel_checkout")
         st.session_state.checkout_date = checkout_date
 
         room_type = st.selectbox("Select Room Type", ["Single", "Double", "Suite", "Deluxe"], key="hotel_room")
 
+        # Calculate price only if check-in and check-out are valid
         num_days = (checkout_date - checkin_date).days
         if num_days <= 0:
             st.error("Check-out date must be after check-in date and at least a one-night stay.")
         else:
             total_price = calculate_hotel_price(room_type, num_days)
             st.write(f"Total Price for {num_days} day(s) in a {room_type}: {total_price:.2f} INR")
+
 
             payment_method = st.radio("Select Payment Method", ["Credit Card", "Debit Card", "UPI"], key="hotel_payment")
 
@@ -258,8 +256,10 @@ def hotel_booking():
 def car_booking():
     st.header("Car Rental Booking")
     
+    # Select the city for car rentals
     city = st.selectbox("Select City", ["Mumbai", "Delhi", "Bangalore", "Hyderabad", "Chennai"], key="car_city")
 
+    # Use session state to persist car data and selected car
     if 'car_data' not in st.session_state:
         st.session_state.car_data = None
     if 'selected_car' not in st.session_state:
@@ -269,35 +269,45 @@ def car_booking():
     if 'dropoff_date' not in st.session_state:
         st.session_state.dropoff_date = None
 
+    # Fetch car rentals when the user clicks the search button
     if st.button("Search Cars"):
         with st.spinner("Fetching car rental data..."):
-            car_data = get_car_rentals(city)
+            car_data = get_car_rentals(city)  # Search by location
             if car_data and car_data.get("data"):
                 st.session_state.car_data = car_data
-                st.session_state.selected_car = None
-                cache_api_data('car', car_data)
+                st.session_state.selected_car = None  # Reset the selected car if the user re-searches
+                cache_api_data('car', car_data)  # Cache the data to avoid multiple API calls
             else:
                 st.error("No cars available for the selected city.")
                 st.session_state.car_data = None
 
+    # Ensure details are only shown after the user searches for cars
     if st.session_state.car_data and st.session_state.car_data.get("data"):
+        # Show the car options with car name, vehicle number, and car ID
         car_options = [f"{car['brand']} - {car['name']} ({car['vehicleNumber']})" for car in st.session_state.car_data["data"][:15]]
         
+        # Display car options after search
         selected_car_option = st.selectbox("Select a Car", car_options, key="car_selection")
+        
+        # Find the selected car's carId and display its details
         selected_car_index = car_options.index(selected_car_option)
         selected_car = st.session_state.car_data["data"][selected_car_index]
         car_id = selected_car["carId"]
         
+        # Display the selected car's information
         st.write(f"**Car Brand:** {selected_car['brand']}")
         st.write(f"**Car Model:** {selected_car['name']}")
         st.write(f"**Vehicle Number:** {selected_car['vehicleNumber']}")
         st.write(f"**Price Per Day:** {selected_car['finalPrice']} INR")
         
+        # Booking section
         pickup_date = st.date_input("Pick-up Date", min_value=datetime.now().date(), key="car_pickup")
         
+        # Ensure the drop-off date is always after the pick-up date
         if st.session_state.dropoff_date is None or st.session_state.dropoff_date < pickup_date:
-            st.session_state.dropoff_date = pickup_date + timedelta(days=1)
+            st.session_state.dropoff_date = pickup_date + timedelta(days=1)  # Default drop-off date is one day after pick-up
 
+        # Drop-off date input
         dropoff_date = st.date_input("Drop-off Date", min_value=pickup_date, value=st.session_state.dropoff_date, key="car_dropoff")
         st.session_state.dropoff_date = dropoff_date
 
@@ -310,8 +320,10 @@ def car_booking():
             st.error("Drop-off date must be at least one day after the pick-up date.")
             total_price = 0
 
+        # Payment method
         payment_method = st.radio("Select Payment Method", ["Credit Card", "Debit Card", "UPI"], key="car_payment")
 
+        # Confirm booking
         if st.button("Confirm Booking", key="confirm_car") and num_days > 0:
             booking_details = {
                 "city": city,
@@ -322,17 +334,21 @@ def car_booking():
                 "payment_method": payment_method,
                 "booking_datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
-            booking_id = generate_booking_id('car')
+            booking_id = generate_booking_id('car')  # Generate a unique booking ID
             store_booking('car', booking_details)
             st.success(f"Car rental booked successfully! Booking ID: {booking_id}")
 
 # Travel History and Cancellation Function
 def travel_history():
     st.header("Travel History")
-    user_email = st.session_state['email']  # Get the logged-in user's email
     
+    if 'email' not in st.session_state:
+        st.error("User email is not available. Please log in.")
+        return
+
     # Active bookings table
     st.subheader("Active Bookings")
+    user_email = st.session_state['email']  # Use logged-in user's email
     history = fetch_booking_history(user_email, canceled=0)
     if history:
         active_data = []
@@ -379,29 +395,35 @@ def travel_history():
                 "Eligible for Cancellation": eligible_for_cancellation
             })
             
+            # Collect eligible bookings for the dropdown
             if eligible_for_cancellation == "Yes":
-                cancelable_bookings.append((idx, booking_id))
+                cancelable_bookings.append((idx, booking_id))  # Store index for reference
 
+        # Display the table of active bookings
         st.table(pd.DataFrame(active_data, columns=["Booking ID", "Service", "Details", "Booked On", "Eligible for Cancellation"]))
 
+        # Dropdown for cancelable bookings
         if cancelable_bookings:
             cancel_option = st.selectbox(
                 "Select a booking to cancel", 
                 [f"{active_data[idx]['Service']} booking ID: {active_data[idx]['Booking ID']}" for idx, _ in cancelable_bookings]
             )
             
+            # Extract the index of the selected option
             cancel_index = next(i for i, opt in enumerate(cancelable_bookings) if f"{active_data[opt[0]]['Service']} booking ID: {active_data[opt[0]]['Booking ID']}" == cancel_option)
             
+            # Button to confirm cancellation
             if st.button("Confirm Cancellation"):
-                cancel_booking(cancelable_bookings[cancel_index][1], user_email)
+                cancel_booking(cancelable_bookings[cancel_index][1], user_email)  # Pass the user_email to cancel_booking
                 st.success(f"Booking ID: {cancelable_bookings[cancel_index][1]} canceled.")
-                st.stop()
+                st.stop()  # Stop script execution, re-render on next user interaction
         else:
             st.write("No bookings eligible for cancellation.")
 
     else:
         st.write("No active bookings found.")
 
+    # Canceled bookings table
     st.subheader("Canceled Bookings")
     canceled_history = fetch_booking_history(user_email, canceled=1)
     if canceled_history:
