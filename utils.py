@@ -478,6 +478,7 @@ def get_amadeus_token():
     except requests.exceptions.RequestException as e:
         return {"error": str(e)}
 
+
 # Function to get flight offers from Amadeus API
 def get_flight_offers(origin, destination, departure_date, return_date=None):
     access_token = get_amadeus_token()
@@ -509,7 +510,7 @@ def get_flight_offers(origin, destination, departure_date, return_date=None):
         return response.json()
     except requests.exceptions.RequestException as e:
         return {"error": str(e)}
-import requests
+    
 
 # IATA Codes for Cities (for Flights and Hotels)
 city_iata_mapping = {
