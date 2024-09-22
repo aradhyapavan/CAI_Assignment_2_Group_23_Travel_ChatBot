@@ -10,4 +10,3 @@ pyspark
 sparknlp
 dateparser
 requests
-python-dotenv

@@ -15,6 +15,12 @@ from pyspark.sql import SparkSession
 from dateparser.search import search_dates
 from datetime import datetime, timedelta
 import sparknlp
+import streamlit as st
+
+amadeus_client_id = st.secrets["AMADEUS_CLIENT_ID"]
+amadeus_client_secret = st.secrets["AMADEUS_CLIENT_SECRET"]
+
+
 
 # Load spaCy model
 def load_spacy_model():
@@ -432,17 +438,14 @@ def classify_entities(entities, locations):
     
     return ', '.join(entity_classification)
 import requests
-from dotenv import load_dotenv
+
 import os
 
-# Load environment variables from the .env file
-load_dotenv()
 
 # Function to get the Amadeus API token
 def get_amadeus_token():
-    client_id = os.getenv("AMADEUS_CLIENT_ID")
-    client_secret = os.getenv("AMADEUS_CLIENT_SECRET")
-    
+    client_id = st.secrets["AMADEUS_CLIENT_ID"]
+    client_secret = st.secrets["AMADEUS_CLIENT_SECRET"]    
     auth_url = "https://test.api.amadeus.com/v1/security/oauth2/token"
     
     data = {
