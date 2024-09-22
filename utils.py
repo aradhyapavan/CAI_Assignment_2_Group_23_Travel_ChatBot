@@ -17,8 +17,7 @@ from datetime import datetime, timedelta
 import sparknlp
 import streamlit as st
 
-amadeus_client_id = st.secrets["AMADEUS_CLIENT_ID"]
-amadeus_client_secret = st.secrets["AMADEUS_CLIENT_SECRET"]
+
 
 import spacy.cli
 
