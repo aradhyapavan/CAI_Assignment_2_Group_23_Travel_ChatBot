@@ -1,5 +1,4 @@
 streamlit==1.38.0
-sqlite3  # sqlite3 is a standard library and does not require a specific version in requirements
 spacy==3.7.6
 joblib==1.4.2
 pandas==2.2.2
