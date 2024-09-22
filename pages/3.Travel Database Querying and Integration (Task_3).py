@@ -61,8 +61,8 @@ with st.chat_message("assistant"):
     st.markdown("""
     ### Examples for Enhanced Task 3:
     - "Show me available flights by Air India from Delhi to Mumbai in October."
-    - "Are there any Deluxe Hotel rooms available in Jaipur ?"
-    - "I need to rent a Car in Bangalore next Monday."
+    - "Are there any Hotel rooms available in Jaipur ?"
+    - "I need to rent a Car in Bangalore next Month."
     """)
 
 if 'conversation_history_task3' not in st.session_state:
