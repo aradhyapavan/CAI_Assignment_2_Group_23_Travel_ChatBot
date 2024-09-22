@@ -264,14 +264,14 @@ def chatbot_interface():
     # Service selection dropdown
     service_option = st.selectbox(
         "What would you like to query about?", 
-        ["Flight", "Hotel", "Car Rental", "Travel Advisory"]
+        ["Car Rental", "Travel Advisory", "Flight", "Hotel"]
     )
 
     # Show relevant example queries based on selected service
     if service_option == "Car Rental":
         st.markdown("""
         ### Example Queries for Car Rentals:
-        - "I'd like to rent a convertible in Hyderabad on 2024-11-9."
+        - "I'd like to rent a convertible in Hyderabad on Next Monday."
         - "Can I rent an SUV in Bangalore ?"
         - "Are luxury cars available for rent in Mumbai?"
         - "I need to rent a convertible in Pune in July 2025."
