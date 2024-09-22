@@ -33,36 +33,55 @@ def setup_db():
     c.execute('''
         CREATE TABLE IF NOT EXISTS bookings (
             booking_id TEXT,
-            user_email TEXT,  -- Add user_email to track bookings by user
             service_type TEXT,
             details TEXT,
             booking_date TEXT,
+            user_email TEXT,  -- Ensure that bookings are linked to a specific user
             canceled INTEGER DEFAULT 0
         )
     ''')
     conn.commit()
 
+# Call setup_db to ensure database structure is correct
 setup_db()
 
 # Greeting and Overview of Booking System
 st.title("🤖 Welcome to Travel Services!")
-if 'name' in st.session_state:  # Using 'name', not 'user_name'
+if 'name' in st.session_state:
     st.markdown(f"Hello, {st.session_state['name']}! I'm here to assist you with your travel needs.")
 else:
     st.markdown("Hello! I'm here to assist you with your travel needs.")
 
 st.markdown("""
 ### 🛠️ How It Works:
-1. **Flight Booking**: Select your source and destination cities, choose departure and return dates, and pick your travel class. Confirm your booking.
-2. **Hotel Booking**: Choose a city, search for available hotels, select your preferred hotel and room type. Confirm your booking.
-3. **Car Rental**: Select a city and search for available rental cars, choose pick-up and drop-off dates, confirm your booking.
-4. **Cancellation Policy**: Cancel bookings within **24 hours** of booking date if eligible.
+1. **Flight Booking**: 
+   - Select your source and destination cities, choose departure and return dates, and pick your travel class.
+   - Click **Search Flights** to fetch available options. Once you select a flight, confirm your booking and pay using your preferred method.
+
+2. **Hotel Booking**: 
+   - Choose a city, search for available hotels, and select your preferred hotel and room type.
+   - Specify your check-in and check-out dates, and confirm your booking with the total price.
+
+3. **Car Rental**:
+   - Select a city and search for available rental cars.
+   - Choose a car, specify pick-up and drop-off dates, and confirm your booking.
+
+4. **Cancellation Policy**: 
+   - You can cancel bookings within **24 hours** of the booking date, provided the booking is eligible for cancellation. 
+   - If you wish to cancel, simply select the booking from your travel history and confirm the cancellation.
+
+### 🌐 APIs Used:
+- **Flight Offers API**: Fetches the latest flight offers.
+- **Hotel List API**: Retrieves a list of hotels in your chosen city.
+- **Car Rentals API**: Provides rental options in your selected city.
+
+Let’s get started! Please select a service from the dropdown below.
 """)
 
 # Function to generate unique booking ID
 def generate_booking_id(service_type):
     prefix = {'flight': 'FL', 'hotel': 'HL', 'car': 'CR'}
-    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')  # e.g., 20240921121530
     return f"{prefix.get(service_type, 'XX')}{timestamp}"
 
 # Cache API data
@@ -81,23 +100,19 @@ def fetch_cached_api_data(service_type):
 
 # Store booking details in DB with a unique booking ID and user email
 def store_booking(service_type, details):
-    if 'email' not in st.session_state:  # Using 'email', not 'user_email'
-        st.error("User email is not available. Please log in.")
-        return None
-
     booking_id = generate_booking_id(service_type)
-    user_email = st.session_state['email']  # Fetch user email from session state
-    c.execute("INSERT INTO bookings (booking_id, user_email, service_type, details, booking_date, canceled) VALUES (?, ?, ?, ?, ?, ?)",
-              (booking_id, user_email, service_type, str(details), datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 0))
+    user_email = st.session_state['email']  # Get the logged-in user's email
+    c.execute("INSERT INTO bookings (booking_id, service_type, details, booking_date, user_email, canceled) VALUES (?, ?, ?, ?, ?, ?)",
+              (booking_id, service_type, str(details), datetime.now().strftime('%Y-%m-%d %H:%M:%S'), user_email, 0))
     conn.commit()
     return booking_id
 
-# Fetch booking history for the logged-in user
+# Fetch booking history for a specific user
 def fetch_booking_history(user_email, canceled=0):
     c.execute("SELECT booking_id, service_type, details, booking_date FROM bookings WHERE user_email=? AND canceled=?", (user_email, canceled))
     return c.fetchall()
 
-# Delete booking (Cancel)
+# Delete booking (Cancel) for a specific user
 def cancel_booking(booking_id, user_email):
     c.execute("UPDATE bookings SET canceled=1 WHERE booking_id=? AND user_email=?", (booking_id, user_email))
     conn.commit()
@@ -107,7 +122,6 @@ def convert_to_inr(eur_price):
     conversion_rate = 110
     return float(eur_price) * conversion_rate
 
-# Function to check if a booking is within 24 hours
 def is_within_24_hours(booking_date_str):
     booking_date = datetime.strptime(booking_date_str, '%Y-%m-%d %H:%M:%S')
     return (datetime.now() - booking_date).total_seconds() <= 24 * 3600
@@ -236,7 +250,6 @@ def hotel_booking():
             total_price = calculate_hotel_price(room_type, num_days)
             st.write(f"Total Price for {num_days} day(s) in a {room_type}: {total_price:.2f} INR")
 
-
             payment_method = st.radio("Select Payment Method", ["Credit Card", "Debit Card", "UPI"], key="hotel_payment")
 
             if st.button("Confirm Booking", key="confirm_hotel"):
@@ -341,14 +354,10 @@ def car_booking():
 # Travel History and Cancellation Function
 def travel_history():
     st.header("Travel History")
+    user_email = st.session_state['email']  # Get the logged-in user's email
     
-    if 'email' not in st.session_state:
-        st.error("User email is not available. Please log in.")
-        return
-
     # Active bookings table
     st.subheader("Active Bookings")
-    user_email = st.session_state['email']  # Use logged-in user's email
     history = fetch_booking_history(user_email, canceled=0)
     if history:
         active_data = []
@@ -414,7 +423,7 @@ def travel_history():
             
             # Button to confirm cancellation
             if st.button("Confirm Cancellation"):
-                cancel_booking(cancelable_bookings[cancel_index][1], user_email)  # Pass the user_email to cancel_booking
+                cancel_booking(cancelable_bookings[cancel_index][1], user_email)
                 st.success(f"Booking ID: {cancelable_bookings[cancel_index][1]} canceled.")
                 st.stop()  # Stop script execution, re-render on next user interaction
         else:
