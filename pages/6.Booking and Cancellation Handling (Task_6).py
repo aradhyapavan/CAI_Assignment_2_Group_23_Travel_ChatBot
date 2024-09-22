@@ -5,14 +5,6 @@ from datetime import datetime, timedelta
 import login_signup
 from utils import get_flight_offers, get_hotel_list_by_city, get_car_rentals, get_vehicle_details_by_car_id
 
-
-# Drop and recreate tables if needed
-def reset_database():
-    c.execute("DROP TABLE IF EXISTS api_data")
-    c.execute("DROP TABLE IF EXISTS bookings")
-    conn.commit()
-    setup_db()
-
 # Function to setup database schema
 def setup_db():
     c.execute('''
@@ -33,8 +25,14 @@ def setup_db():
     ''')
     conn.commit()
 
-# Call reset_database if you want to reset the tables
-reset_database()
+# Connect to SQLite database
+conn = sqlite3.connect('travel_booking.db', check_same_thread=False)
+c = conn.cursor()
+
+# Call setup_db to ensure database structure is correct
+setup_db()  # This will create the tables if they don't exist but will not drop any data
+
+
 
 
 # Check if user is logged in and redirect to login if not
