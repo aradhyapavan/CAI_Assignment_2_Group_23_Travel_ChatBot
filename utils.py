@@ -20,11 +20,17 @@ import streamlit as st
 amadeus_client_id = st.secrets["AMADEUS_CLIENT_ID"]
 amadeus_client_secret = st.secrets["AMADEUS_CLIENT_SECRET"]
 
+import spacy.cli
+
+# Download the SpaCy model if not already installed
+spacy.cli.download("en_core_web_md")
+
+
 
 
 # Load spaCy model
 def load_spacy_model():
-    return spacy.load("en_core_web_sm")
+    return spacy.load("en_core_web_md")
 
 nlp = load_spacy_model()
 
