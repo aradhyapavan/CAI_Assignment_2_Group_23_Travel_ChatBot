@@ -1,6 +1,5 @@
 # This must be the very first Streamlit command in the script.
 import streamlit as st
-st.set_page_config(page_title="Travel Assistant Chatbot", page_icon="✈️", layout="centered")
 
 import sqlite3
 

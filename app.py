@@ -1,5 +1,6 @@
 import streamlit as st
 import login_signup  # Import login and signup module
+st.set_page_config(page_title="Travel Assistant Chatbot", page_icon="✈️", layout="centered")
 
 
 
