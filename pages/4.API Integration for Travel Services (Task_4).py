@@ -318,3 +318,4 @@ elif service_choice == "Car Rental":
                     </div>
                     """
                     st.markdown(car_html, unsafe_allow_html=True)
+                  
