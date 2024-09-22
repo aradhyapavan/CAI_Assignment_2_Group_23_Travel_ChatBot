@@ -16,21 +16,21 @@ from dateparser.search import search_dates
 from datetime import datetime, timedelta
 import sparknlp
 import streamlit as st
-
-
-
+import spacy
 import spacy.cli
 
-# Download the SpaCy model if not already installed
-spacy.cli.download("en_core_web_md")
-
-
-
-
-# Load spaCy model
+# Function to check if SpaCy model is installed and load it, otherwise download and load
 def load_spacy_model():
-    return spacy.load("en_core_web_md")
+    try:
+        # Try loading the model if it's already installed
+        nlp = spacy.load("en_core_web_md")
+    except OSError:
+        # If model is not installed, download it first
+        spacy.cli.download("en_core_web_md")
+        nlp = spacy.load("en_core_web_md")
+    return nlp
 
+# Load the SpaCy model
 nlp = load_spacy_model()
 
 # Load BERT NER model
