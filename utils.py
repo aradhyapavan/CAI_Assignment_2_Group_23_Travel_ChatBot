@@ -453,13 +453,15 @@ def classify_entities(entities, locations):
 import os
 
 import requests
+import streamlit as st
 
-
+# Access secrets from the "general" section
+amadeus_client_id = st.secrets["general"]["AMADEUS_CLIENT_ID"]
+amadeus_client_secret = st.secrets["general"]["AMADEUS_CLIENT_SECRET"]
 
 # Function to get the Amadeus API token using the global variables
 def get_amadeus_token():
-    amadeus_client_id = st.secrets["general"]["AMADEUS_CLIENT_ID"]
-    amadeus_client_secret = st.secrets["general"]["AMADEUS_CLIENT_SECRET"]
+    
   
     auth_url = "https://test.api.amadeus.com/v1/security/oauth2/token"
     
