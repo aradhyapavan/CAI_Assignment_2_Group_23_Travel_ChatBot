@@ -5,12 +5,6 @@ from datetime import datetime, timedelta
 import login_signup
 from utils import get_flight_offers, get_hotel_list_by_city, get_car_rentals, get_vehicle_details_by_car_id
 
-# Drop and recreate tables if needed
-def reset_database():
-    c.execute("DROP TABLE IF EXISTS api_data")
-    c.execute("DROP TABLE IF EXISTS bookings")
-    conn.commit()
-    setup_db()
 
 # Create tables for API data caching and booking history
 def setup_db():
@@ -49,8 +43,6 @@ check_login()
 conn = sqlite3.connect('travel_booking.db', check_same_thread=False)
 c = conn.cursor()
 
-# Reset and recreate database tables
-reset_database()
 
 # Greeting and Overview of Booking System
 st.title("🤖 Welcome to Travel Services!")
