@@ -18,6 +18,12 @@ def check_login():
 
 check_login()
 
+def reset_database():
+    c.execute("DROP TABLE IF EXISTS api_data")
+    c.execute("DROP TABLE IF EXISTS bookings")
+    conn.commit()
+    setup_db()
+
 # Connect to SQLite database
 conn = sqlite3.connect('travel_booking.db', check_same_thread=False)
 c = conn.cursor()
@@ -44,17 +50,6 @@ def setup_db():
 
 setup_db()
 
-# Modify the bookings table to include the user_email column if it doesn't exist
-def alter_table_for_user_email():
-    c.execute("PRAGMA table_info(bookings)")
-    columns = [column[1] for column in c.fetchall()]
-    
-    if 'user_email' not in columns:
-        c.execute("ALTER TABLE bookings ADD COLUMN user_email TEXT")
-        conn.commit()
-
-# Call this function after setup_db
-alter_table_for_user_email()
 
 
 # Greeting and Overview of Booking System
