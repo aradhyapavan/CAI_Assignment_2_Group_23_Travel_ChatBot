@@ -33,6 +33,12 @@ def load_spacy_model():
 # Load the SpaCy model
 nlp = load_spacy_model()
 
+def preprocess(text):
+    # Basic preprocessing: lowercasing and removing non-alphanumeric characters
+    text = text.lower()
+    text = re.sub(r'\W+', ' ', text)
+    return text
+
 # Load BERT NER model
 def load_ner_model():
     return pipeline("ner", model="dbmdz/bert-large-cased-finetuned-conll03-english")
