@@ -1,12 +1,12 @@
-streamlit
-sqlite3
-spacy
-joblib
-pandas
-flair
-transformers
-scikit-learn
-pyspark
-sparknlp
-dateparser
-requests
+streamlit==1.38.0
+sqlite3  # sqlite3 is a standard library and does not require a specific version in requirements
+spacy==3.7.6
+joblib==1.4.2
+pandas==2.2.2
+flair==0.14.0
+transformers==4.44.2
+scikit-learn==1.5.1
+pyspark==3.5.2
+spark-nlp==5.4.2
+dateparser==1.2.0
+requests==2.32.3
