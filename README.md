@@ -2,7 +2,7 @@
 
 ---
 
-# ✈️ TravelChat: Real-Time Travel Booking & Assistance 🧳
+# ✈️ Travel Chat  Bot🧳
 
 **TravelChat** is a real-time travel booking and assistance application designed to streamline travel planning. It provides users with flight bookings, hotel reservations, car rentals, and real-time travel alerts, along with personalized travel suggestions based on user preferences and history.
 
