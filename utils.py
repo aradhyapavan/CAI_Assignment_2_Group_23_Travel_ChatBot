@@ -46,10 +46,14 @@ def load_ner_model():
 ner_model = load_ner_model()
 
 # Load Flair model for date extraction
+
+from flair.models import SequenceTagger
+
 def load_flair_model():
-    return SequenceTagger.load("flair/ner-english")
+    return SequenceTagger.load("flair/ner-english", map_location="cpu", weights_only=False)
 
 flair_tagger = load_flair_model()
+
 
 # Initialize Spark NLP
 def start_spark_nlp():
