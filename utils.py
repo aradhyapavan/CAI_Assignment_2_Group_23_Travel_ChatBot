@@ -50,9 +50,10 @@ ner_model = load_ner_model()
 from flair.models import SequenceTagger
 
 def load_flair_model():
-    return SequenceTagger.load("flair/ner-english", map_location="cpu", weights_only=False)
+    return SequenceTagger.load("flair/ner-english", map_location="cpu")
 
 flair_tagger = load_flair_model()
+
 
 
 # Initialize Spark NLP
