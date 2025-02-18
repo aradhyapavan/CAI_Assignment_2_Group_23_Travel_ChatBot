@@ -47,12 +47,13 @@ ner_model = load_ner_model()
 
 # Load Flair model for date extraction
 
+
+
 from flair.models import SequenceTagger
 
 def load_flair_model():
-    return SequenceTagger.load("flair/ner-english", map_location="cpu")
+    return SequenceTagger.load("flair/ner-english")  # Remove map_location
 
-flair_tagger = load_flair_model()
 
 
 
